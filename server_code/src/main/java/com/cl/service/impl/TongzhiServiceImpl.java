@@ -77,6 +77,7 @@ public class TongzhiServiceImpl implements TongzhiService {
 
         String bestChannel = channelStatus.getBestChannel();
         Date yuyueTime = yuyue.getYuyueshijian();
+        Date now = new Date();
 
         // 1. 预约成功通知 - 立即发送
         String content1 = buildNotificationContent(1, yuyue, yonghu, yuyueTime);
@@ -87,69 +88,63 @@ public class TongzhiServiceImpl implements TongzhiService {
                 1,
                 content1,
                 bestChannel,
-                new Date()
+                now
         );
         SendResult result1 = sendNotification(record1);
         results.add(result1);
 
-        // 2. 就诊前24小时提醒
+        // 2. 就诊前24小时提醒 - 立即创建记录，如果预约时间在24小时内则立即发送
         Date remind24h = calculateReminderTime(yuyueTime, -24);
-        if (remind24h.after(new Date())) {
-            String content2 = buildNotificationContent(2, yuyue, yonghu, yuyueTime);
-            TongzhijiluEntity record2 = createNotificationRecord(
-                    yuyue.getYuyuebianhao(),
-                    yonghu.getZhanghao(),
-                    yonghu.getShouji(),
-                    2,
-                    content2,
-                    bestChannel,
-                    remind24h
-            );
-            // 如果提醒时间已经到了，立即发送
-            if (remind24h.before(new Date())) {
-                SendResult result2 = sendNotification(record2);
-                results.add(result2);
-            }
+        String content2 = buildNotificationContent(2, yuyue, yonghu, yuyueTime);
+        TongzhijiluEntity record2 = createNotificationRecord(
+                yuyue.getYuyuebianhao(),
+                yonghu.getZhanghao(),
+                yonghu.getShouji(),
+                2,
+                content2,
+                bestChannel,
+                remind24h.after(now) ? remind24h : now
+        );
+        // 如果预约时间在24小时内，立即发送
+        if (remind24h.before(now) || remind24h.equals(now)) {
+            SendResult result2 = sendNotification(record2);
+            results.add(result2);
         }
 
-        // 3. 就诊前1小时提醒
+        // 3. 就诊前1小时提醒 - 立即创建记录，如果预约时间在1小时内则立即发送
         Date remind1h = calculateReminderTime(yuyueTime, -1);
-        if (remind1h.after(new Date())) {
-            String content3 = buildNotificationContent(3, yuyue, yonghu, yuyueTime);
-            TongzhijiluEntity record3 = createNotificationRecord(
-                    yuyue.getYuyuebianhao(),
-                    yonghu.getZhanghao(),
-                    yonghu.getShouji(),
-                    3,
-                    content3,
-                    bestChannel,
-                    remind1h
-            );
-            // 如果提醒时间已经到了，立即发送
-            if (remind1h.before(new Date())) {
-                SendResult result3 = sendNotification(record3);
-                results.add(result3);
-            }
+        String content3 = buildNotificationContent(3, yuyue, yonghu, yuyueTime);
+        TongzhijiluEntity record3 = createNotificationRecord(
+                yuyue.getYuyuebianhao(),
+                yonghu.getZhanghao(),
+                yonghu.getShouji(),
+                3,
+                content3,
+                bestChannel,
+                remind1h.after(now) ? remind1h : now
+        );
+        // 如果预约时间在1小时内，立即发送
+        if (remind1h.before(now) || remind1h.equals(now)) {
+            SendResult result3 = sendNotification(record3);
+            results.add(result3);
         }
 
-        // 4. 就诊当天提醒
+        // 4. 就诊当天提醒 - 立即创建记录，如果就诊时间就是今天则立即发送
         Date remindSameDay = calculateSameDayReminder(yuyueTime);
-        if (remindSameDay.after(new Date())) {
-            String content4 = buildNotificationContent(4, yuyue, yonghu, yuyueTime);
-            TongzhijiluEntity record4 = createNotificationRecord(
-                    yuyue.getYuyuebianhao(),
-                    yonghu.getZhanghao(),
-                    yonghu.getShouji(),
-                    4,
-                    content4,
-                    bestChannel,
-                    remindSameDay
-            );
-            // 如果提醒时间已经到了，立即发送
-            if (remindSameDay.before(new Date())) {
-                SendResult result4 = sendNotification(record4);
-                results.add(result4);
-            }
+        String content4 = buildNotificationContent(4, yuyue, yonghu, yuyueTime);
+        TongzhijiluEntity record4 = createNotificationRecord(
+                yuyue.getYuyuebianhao(),
+                yonghu.getZhanghao(),
+                yonghu.getShouji(),
+                4,
+                content4,
+                bestChannel,
+                remindSameDay.after(now) ? remindSameDay : now
+        );
+        // 如果就诊时间就是今天，立即发送
+        if (isSameDay(remindSameDay, now) || remindSameDay.before(now)) {
+            SendResult result4 = sendNotification(record4);
+            results.add(result4);
         }
 
         return results;
@@ -369,6 +364,21 @@ public class TongzhiServiceImpl implements TongzhiService {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         return cal.getTime();
+    }
+
+    /**
+     * 判断两个日期是否为同一天
+     */
+    private boolean isSameDay(Date date1, Date date2) {
+        if (date1 == null || date2 == null) {
+            return false;
+        }
+        Calendar cal1 = Calendar.getInstance();
+        cal1.setTime(date1);
+        Calendar cal2 = Calendar.getInstance();
+        cal2.setTime(date2);
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+               cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
     }
 
     /**

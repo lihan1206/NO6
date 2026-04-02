@@ -47,6 +47,9 @@ import com.cl.utils.CommonUtil;
 public class JiuzhentongzhiController {
     @Autowired
     private JiuzhentongzhiService jiuzhentongzhiService;
+    
+    @Autowired
+    private com.cl.service.NotificationSendService notificationSendService;
 
 
 
@@ -191,13 +194,28 @@ public class JiuzhentongzhiController {
         return R.ok();
     }
     
+    /**
+     * 手动重试单个通知
+     */
+    @RequestMapping("/retry/{id}")
+    @SysLog("重试发送通知")
+    public R retryNotification(@PathVariable("id") Long id){
+        notificationSendService.retryNotification(id);
+        return R.ok("重试通知发送成功");
+    }
+    
+    /**
+     * 批量重试所有失败通知
+     */
+    @RequestMapping("/retryAll")
+    @SysLog("批量重试失败通知")
+    public R retryAllFailedNotifications(){
+        notificationSendService.retryFailedNotifications();
+        return R.ok("批量重试失败通知成功");
+    }
+    
 	
-
-
-
-
-
-
+	
 
 
 

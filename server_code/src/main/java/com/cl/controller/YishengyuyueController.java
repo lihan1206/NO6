@@ -47,6 +47,9 @@ import com.cl.utils.CommonUtil;
 public class YishengyuyueController {
     @Autowired
     private YishengyuyueService yishengyuyueService;
+    
+    @Autowired
+    private com.cl.service.NotificationSendService notificationSendService;
 
 
 
@@ -149,6 +152,8 @@ public class YishengyuyueController {
     public R save(@RequestBody YishengyuyueEntity yishengyuyue, HttpServletRequest request){
     	//ValidatorUtils.validateEntity(yishengyuyue);
         yishengyuyueService.insert(yishengyuyue);
+        // 预约成功后立即创建并发送通知
+        notificationSendService.createAndSendNotifications(yishengyuyue);
         return R.ok();
     }
     
@@ -160,6 +165,8 @@ public class YishengyuyueController {
     public R add(@RequestBody YishengyuyueEntity yishengyuyue, HttpServletRequest request){
     	//ValidatorUtils.validateEntity(yishengyuyue);
         yishengyuyueService.insert(yishengyuyue);
+        // 预约成功后立即创建并发送通知
+        notificationSendService.createAndSendNotifications(yishengyuyue);
         return R.ok();
     }
 
@@ -190,6 +197,10 @@ public class YishengyuyueController {
             yishengyuyue.setSfsh(sfsh);
             yishengyuyue.setShhf(shhf);
             list.add(yishengyuyue);
+            // 如果审核通过，发送通知
+            if("是".equals(sfsh)) {
+                notificationSendService.createAndSendNotifications(yishengyuyue);
+            }
         }
         yishengyuyueService.updateBatchById(list);
         return R.ok();
